@@ -1,3 +1,5 @@
+import java.util.Vector;
+
 public class MoneyPiece {
 
     double m_value;
