@@ -1,15 +1,15 @@
-import java.util.Vector;
+import java.util.ArrayList;
 
 public class Purse {
 
     String m_owner;
     double m_purseValue;
-    Vector<MoneyPiece> m_piecesInPurse;
-    Vector<Transaction> m_transactions = new Vector<>();
+    ArrayList<MoneyPiece> m_piecesInPurse = new ArrayList();
 
-    public Purse(String owner, Vector<MoneyPiece> piecesInPurse){
+    public Purse(String owner, ArrayList<MoneyPiece> piecesInPurse){
         m_owner = owner;
         m_piecesInPurse = piecesInPurse;
+
 
     }
 
@@ -17,16 +17,8 @@ public class Purse {
         m_purseValue = 0;
         for (MoneyPiece m :m_piecesInPurse) {
             m_purseValue += m.getM_value();
-            System.out.println(m_purseValue);
         }
-
-    }
-    public void calculateNewTransaction(){
-        double oldValue = m_purseValue;
-        calculateNewValue();
-        double newValue = m_purseValue;
-        Transaction newTrans = new Transaction(oldValue, newValue);
-        m_transactions.add(newTrans);
     }
 
 }
+
