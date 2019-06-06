@@ -1,16 +1,14 @@
-import java.util.Vector;
-
 public class MoneyPiece {
 
-    double m_value;
-    int m_id;
+    double moneyValue;
+    int moneyId;
 
     public MoneyPiece(double value, int id){
-        m_id = id;
-        m_value = value;
+        moneyId = id;
+        moneyValue = value;
     }
 
-    public double getM_value() {
-        return m_value;
+    public double getMoneyValue() {
+        return moneyValue;
     }
 }

@@ -1,9 +1,9 @@
-import gnu.io.*; // RXTX
+import gnu.io.CommPortIdentifier;
+
 import java.util.Enumeration;
-public class TestClass
-{
-    public static void main(String[] args)
-    {
+
+public class TestClass {
+    public static void main(String[] args) {
         System.out.println("Program started");
         //System.out.println(java.library.path);
         CommPortIdentifier serialPortId;
@@ -11,17 +11,14 @@ public class TestClass
         Enumeration enumComm;
         //SerialPort serialPort;
         enumComm = CommPortIdentifier.getPortIdentifiers();
-        while (enumComm.hasMoreElements())
-        {
+        while (enumComm.hasMoreElements()) {
             serialPortId = (CommPortIdentifier) enumComm.nextElement();
-            if(serialPortId.getPortType()==CommPortIdentifier.PORT_SERIAL)
-            {
+            if (serialPortId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
                 System.out.println(serialPortId.getName());
             }
         }
         System.out.println("Finished successfully");
     }
-
 
 
 }

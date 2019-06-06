@@ -2,21 +2,18 @@ import java.util.ArrayList;
 
 public class Purse {
 
-    String m_owner;
-    double m_purseValue;
-    ArrayList<MoneyPiece> m_piecesInPurse = new ArrayList();
+    private String moneyOwner;
+    private ArrayList<MoneyPiece> piecesInPurse = new ArrayList();
 
     public Purse(String owner, ArrayList<MoneyPiece> piecesInPurse){
-        m_owner = owner;
-        m_piecesInPurse = piecesInPurse;
-
-
+        moneyOwner = owner;
+        this.piecesInPurse = piecesInPurse;
     }
 
     public void calculateNewValue(){
-        m_purseValue = 0;
-        for (MoneyPiece m :m_piecesInPurse) {
-            m_purseValue += m.getM_value();
+        double m_purseValue = 0;
+        for (MoneyPiece piece : piecesInPurse) {
+            m_purseValue += piece.getMoneyValue();
         }
     }
 
