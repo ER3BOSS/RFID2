@@ -70,11 +70,11 @@ public class PaulTest implements Runnable {
         //erstelle Index
 
         sendeSerialPort("6C20s");
-        sleep(2000);
+        sleep(500);
         //lese gescannte Tags aus
         sendeSerialPort("1001");
 
-        sleep(2000);
+        sleep(500);
         sleep(2000);
 
         uids = outputStream.toString();
