@@ -22,7 +22,7 @@ import java.util.TooManyListenersException;
 /**
  * @author Paul
  */
-public class PaulTest implements Runnable {
+public class CommunicationHandler implements Runnable {
     private boolean config;
 
     private CommPortIdentifier serialPortId;
@@ -36,7 +36,7 @@ public class PaulTest implements Runnable {
     private int dataBits = SerialPort.DATABITS_8;
     private int stopBits = SerialPort.STOPBITS_1;
     private int parity = SerialPort.PARITY_NONE;
-    private String portName = "COM6";
+    private String portName = TestClass.test();
 
     static private byte STX = 0x02;
     static private byte ETX = 0x03;
@@ -44,7 +44,7 @@ public class PaulTest implements Runnable {
     private String result;
 
     //@param config: true for run forever, false for stop
-    PaulTest(boolean config) {
+    CommunicationHandler(boolean config) {
         this.config = config;
         oeffneSerialPort(portName);
     }
@@ -70,7 +70,7 @@ public class PaulTest implements Runnable {
         sendeSerialPort("6C20s");
         Thread.sleep(500);
         //lese gescannte Tags aus
-        sendeSerialPort("1001");
+        sendeSerialPort("6C21");
 
         Thread.sleep(500);
         Thread.sleep(2000);
@@ -80,7 +80,7 @@ public class PaulTest implements Runnable {
         try {
             sleep(500);
         } catch (InterruptedException ex) {
-            Logger.getLogger(PaulTest.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(CommunicationHandler.class.getName()).log(Level.SEVERE, null, ex);
         }
         System.out.println(uids);
         return uids;
