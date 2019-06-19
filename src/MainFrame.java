@@ -3,15 +3,22 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 import java.awt.*;
 import java.awt.event.*;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 
 public class MainFrame extends javax.swing.JDialog {
+
+
     private JPanel contentPane;
     private JButton buttonScan;
     private JButton buttonCancel;
     private JEditorPane editorPane1;
+    RFIDScanner rfid;
+    Purse mainPurse;
 
 
     public MainFrame() {
+        mainPurse= new Purse("Lukas", new ArrayList<MoneyPiece>());
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(buttonScan);
@@ -46,7 +53,7 @@ public class MainFrame extends javax.swing.JDialog {
     }
 
     private void onOK() {
-        // add your code here
+        rfid.scan();
         dispose();
     }
 

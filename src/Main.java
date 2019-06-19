@@ -1,5 +1,4 @@
 import gnu.io.*;
-import com.fazecast.jSerialComm.*;
 import java.util.Enumeration;
 
 public class Main{
