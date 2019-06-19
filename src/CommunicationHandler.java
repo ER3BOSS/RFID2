@@ -7,6 +7,7 @@
 import static java.lang.Thread.sleep;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -88,16 +89,45 @@ public class CommunicationHandler implements Runnable {
 
     public void serialPortDatenVerfuegbar() {
         try {
-            System.out.println("EMPFANGE");
             byte[] data = new byte[150];
             int num;
             while(inputStream.available() > 0) {
                 num = inputStream.read(data, 0, data.length);
-                System.out.println("Empfange: "+ new String(data, 0, num));
+                String response = new String(data, 0, num);
+                if (response.length() > 16){
+                    System.out.println("####################################");
+                    printStringList(butcherResponse(response));
+                }
+                System.out.println("Empfange: "+ response);
             }
         } catch (IOException e) {
             System.out.println("Fehler beim Lesen empfangener Daten");
         }
+    }
+
+    private void printStringList(ArrayList<String> strings) {
+        for (String s :
+                strings) {
+            System.out.println(s);
+        }
+    }
+
+    private ArrayList<String> butcherResponse(String response) {
+        ArrayList<String> liste = new ArrayList<>();
+        if (response.contains("6C21")){
+            response = response.substring(6);
+        }
+        int count = Integer.parseInt(response.substring(0,4));
+        response = response.substring(4); //remove the count
+        System.out.println("COUNT:: "+ count);
+        for (int i = 0; i < count; i++) {
+
+            String id = response.substring(0,16);
+            response = response.substring(16);
+            liste.add(id);
+
+        }
+        return liste;
     }
 
 
