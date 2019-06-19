@@ -7,6 +7,7 @@
 import static java.lang.Thread.sleep;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -38,6 +39,8 @@ public class CommunicationHandler implements Runnable {
     private int parity = SerialPort.PARITY_NONE;
     private String portName = TestClass.test();
 
+    Purse purse = new Purse("Lukas", new ArrayList<MoneyPiece>());
+    ArrayList<MoneyPiece> mpArray = new ArrayList<>();
     static private byte STX = 0x02;
     static private byte ETX = 0x03;
 
@@ -47,7 +50,21 @@ public class CommunicationHandler implements Runnable {
     CommunicationHandler(boolean config) {
         this.config = config;
         oeffneSerialPort(portName);
+        String s1 = "9941C34C000104E0";
+        String s2 = "4341C34C000104E0";
+        String s3 = "4441C34C000104E0";
+        String s4 = "9941C34C000104E0";
+        String s5 = "DC40C34C000104E0";
+        mpArray.add(new MoneyPiece(500, s1));
+        mpArray.add(new MoneyPiece(20, s2));
+        mpArray.add(new MoneyPiece(2, s3));
+        mpArray.add(new MoneyPiece(5, s4));
+        mpArray.add(new MoneyPiece(1, s5));
+
+
     }
+
+
 
     @Override
     public void run() {
@@ -68,12 +85,12 @@ public class CommunicationHandler implements Runnable {
         //erstelle Index
 
         sendeSerialPort("6C20s");
-        Thread.sleep(500);
+        sleep(500);
         //lese gescannte Tags aus
         sendeSerialPort("6C21");
 
-        Thread.sleep(500);
-        Thread.sleep(2000);
+        sleep(500);
+        sleep(2000);
 
         uids = outputStream.toString();
         uids = uids.substring(8);
@@ -82,18 +99,17 @@ public class CommunicationHandler implements Runnable {
         } catch (InterruptedException ex) {
             Logger.getLogger(CommunicationHandler.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println(uids);
+        System.out.println("uids" + uids);
         return uids;
     }
 
     public void serialPortDatenVerfuegbar() {
         try {
-            System.out.println("EMPFANGE");
             byte[] data = new byte[150];
             int num;
-            while(inputStream.available() > 0) {
+            while (inputStream.available() > 0) {
                 num = inputStream.read(data, 0, data.length);
-                System.out.println("Empfange: "+ new String(data, 0, num));
+                System.out.println("Empfange: " + new String(data, 0, num));
             }
         } catch (IOException e) {
             System.out.println("Fehler beim Lesen empfangener Daten");
@@ -182,53 +198,49 @@ public class CommunicationHandler implements Runnable {
         }
     }*/
 
-    void sendeSerialPort(String nachricht)
-    {
+    void sendeSerialPort(String nachricht) {
 
 
         System.out.println("Sende: " + nachricht);
 
         //nachricht= nachricht +"\r";
-        System.out.println("String nachricht: "+nachricht);
-        byte[] cmd1 =nachricht.getBytes(StandardCharsets.US_ASCII);
-        System.out.println("Bytes nachricht"+nachricht.getBytes());
-        byte[] cmd=calcScemtecFullCmd(cmd1);
+        System.out.println("String nachricht: " + nachricht);
+        byte[] cmd1 = nachricht.getBytes(StandardCharsets.US_ASCII);
+        System.out.println("Bytes nachricht" + nachricht.getBytes());
+        byte[] cmd = calcScemtecFullCmd(cmd1);
 
         if (serialPortGeoeffnet != true)
             return;
         try {
 
             outputStream.write(cmd);
-            //outputStream.flush();
-            System.out.println("Sende: "+cmdToDecString(cmd));
+            outputStream.flush();
+            System.out.println("Sende: " + cmdToDecString(cmd));
         } catch (IOException e) {
             System.out.println("Fehler beim Senden");
         }
     }
 
-    public static byte[] calcScemtecFullCmd( byte[] cmd )
-    {
+    public static byte[] calcScemtecFullCmd(byte[] cmd) {
 
         byte bArr[] = new byte[cmd.length + 2]; // STX, cmd, ETX
 
-        byte STX=0x02;
-        byte ETX=0x03;
+        byte STX = 0x02;
+        byte ETX = 0x03;
 
         bArr[0] = STX; // start with STX
 
-        for (int i = 0; i < cmd.length; i++ )
-        {
-            bArr[i+1] = cmd[i]; // fill after STX
+        for (int i = 0; i < cmd.length; i++) {
+            bArr[i + 1] = cmd[i]; // fill after STX
         }
 
         bArr[cmd.length + 1] = ETX; // end with ETX
-        byte crc = calcScemtecCRC( bArr ); // get CRC
+        byte crc = calcScemtecCRC(bArr); // get CRC
 
         // new array with CRC
         byte bArr2[] = new byte[bArr.length + 1]; // STX, cmd, ETX, CRC
 
-        for (int i = 0; i < bArr.length; i++ )
-        {
+        for (int i = 0; i < bArr.length; i++) {
             bArr2[i] = bArr[i]; // copy
         }
 
@@ -292,17 +304,16 @@ public class CommunicationHandler implements Runnable {
         }
     }
 
-    public static String cmdToDecString( byte[] cmd ){
+    public static String cmdToDecString(byte[] cmd) {
 
         StringBuffer buf = new StringBuffer();
 
-        for (int i = 0; i < cmd.length - 1; i++ )
-        {
+        for (int i = 0; i < cmd.length - 1; i++) {
 
-            buf.append(String.format( "%03d", cmd[i] ) + "," );
+            buf.append(String.format("%03d", cmd[i]) + ",");
 
         }
-        buf.append( String.format( "%03d", cmd[cmd.length - 1] ) );
+        buf.append(String.format("%03d", cmd[cmd.length - 1]));
 
         return buf.toString();
     }

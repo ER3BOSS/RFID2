@@ -1,9 +1,9 @@
 public class MoneyPiece {
 
     double moneyValue;
-    int moneyId;
+    String moneyId;
 
-    public MoneyPiece(double value, int id){
+    public MoneyPiece(double value, String id){
         moneyId = id;
         moneyValue = value;
     }
