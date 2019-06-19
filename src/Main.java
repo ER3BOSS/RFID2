@@ -1,10 +1,15 @@
-import gnu.io.CommPortIdentifier;
-
+import gnu.io.*;
+import com.fazecast.jSerialComm.*;
 import java.util.Enumeration;
 
-class TestClass {
-    static String test() {
-        String serialName = null;
+public class Main{
+    public static void main(String[] args){
+        test();
+        EinfachSenden einfachSenden = new EinfachSenden();
+        einfachSenden.run();
+    }
+
+    static void test() {
         System.out.println("Test started");
         //System.out.println(java.library.path);
         CommPortIdentifier serialPortId;
@@ -15,12 +20,10 @@ class TestClass {
         while (enumComm.hasMoreElements()) {
             serialPortId = (CommPortIdentifier) enumComm.nextElement();
             if (serialPortId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
-                serialName = serialPortId.getName();
                 System.out.println(serialPortId.getName());
             }
         }
-        return serialName;
+        System.out.println("Finished successfully");
     }
-
 
 }
