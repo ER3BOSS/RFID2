@@ -6,6 +6,7 @@
 
 import static java.lang.Thread.sleep;
 
+import java.nio.charset.StandardCharsets;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,7 +36,7 @@ public class PaulTest implements Runnable {
     private int dataBits = SerialPort.DATABITS_8;
     private int stopBits = SerialPort.STOPBITS_1;
     private int parity = SerialPort.PARITY_NONE;
-    private String portName = "/dev/ttyS0";
+    private String portName = "COM4";
 
     static private byte STX = 0x02;
     static private byte ETX = 0x03;
@@ -46,6 +47,7 @@ public class PaulTest implements Runnable {
     PaulTest(boolean config) {
         this.config = config;
         oeffneSerialPort(portName);
+        sendeSerialPort("F0001");
 
     }
 
@@ -70,7 +72,7 @@ public class PaulTest implements Runnable {
         sendeSerialPort("6C20s");
         sleep(2000);
         //lese gescannte Tags aus
-        sendeSerialPort("6C21");
+        sendeSerialPort("1001");
 
         sleep(2000);
         sleep(2000);
@@ -82,7 +84,6 @@ public class PaulTest implements Runnable {
         } catch (InterruptedException ex) {
             Logger.getLogger(PaulTest.class.getName()).log(Level.SEVERE, null, ex);
         }
-        //uids = result;
         System.out.println(uids);
         return uids;
     }
@@ -106,22 +107,25 @@ public class PaulTest implements Runnable {
         }
     }
 
+
     public void setConfig(boolean config) {
         this.config = config;
     }
 
     private boolean oeffneSerialPort(String portName) {
         Boolean foundPort = false;
-        /*if (serialPortGeoeffnet != false) {
+        if (serialPortGeoeffnet != false) {
             System.out.println("Serialport bereits geÃ¶ffnet");
             return false;
         }
-        System.out.println("Ã–ffne Serialport");*/
+        System.out.println("Ã–ffne Serialport");
         enumComm = CommPortIdentifier.getPortIdentifiers();
         while (enumComm.hasMoreElements()) {
             serialPortId = (CommPortIdentifier) enumComm.nextElement();
-            foundPort = true;
-            break;
+            if (portName.contentEquals(serialPortId.getName())) {
+                foundPort = true;
+                break;
+            }
         }
         if (foundPort != true) {
             System.out.println("Serialport nicht gefunden: " + portName);
@@ -146,7 +150,7 @@ public class PaulTest implements Runnable {
         }
 
         try {
-            serialPort.addEventListener(new PaulTest.serialPortEventListener());
+            serialPort.addEventListener(new serialPortEventListener());
         } catch (TooManyListenersException e) {
             System.out.println("TooManyListenersException fÃ¼r Serialport");
         }
@@ -172,7 +176,7 @@ public class PaulTest implements Runnable {
         }
     }
 
-    private void sendeSerialPort(String nachricht) {
+    /*private void sendeSerialPort(String nachricht) {
         byte[] fullCmd = calcScemtecFullCmd(nachricht.getBytes());
         System.out.println("Sende: " + nachricht);
         if (serialPortGeoeffnet != true)
@@ -183,10 +187,65 @@ public class PaulTest implements Runnable {
         } catch (IOException e) {
             System.out.println("Fehler beim Senden");
         }
+    }*/
+
+    void sendeSerialPort(String nachricht)
+    {
+
+
+        System.out.println("Sende: " + nachricht);
+
+        //nachricht= nachricht +"\r";
+        System.out.println("String nachricht: "+nachricht);
+        byte[] cmd1 =nachricht.getBytes(StandardCharsets.US_ASCII);
+        System.out.println("Bytes nachricht"+nachricht.getBytes());
+        byte[] cmd=calcScemtecFullCmd(cmd1);
+
+        if (serialPortGeoeffnet != true)
+            return;
+        try {
+
+            outputStream.write(cmd);
+            //outputStream.flush();
+            System.out.println("Sende: "+cmdToDecString(cmd));
+        } catch (IOException e) {
+            System.out.println("Fehler beim Senden");
+        }
     }
 
+    public static byte[] calcScemtecFullCmd( byte[] cmd )
+    {
 
-    private static byte[] calcScemtecFullCmd(byte[] cmd) {
+        byte bArr[] = new byte[cmd.length + 2]; // STX, cmd, ETX
+
+        byte STX=0x02;
+        byte ETX=0x03;
+
+        bArr[0] = STX; // start with STX
+
+        for (int i = 0; i < cmd.length; i++ )
+        {
+            bArr[i+1] = cmd[i]; // fill after STX
+        }
+
+        bArr[cmd.length + 1] = ETX; // end with ETX
+        byte crc = calcScemtecCRC( bArr ); // get CRC
+
+        // new array with CRC
+        byte bArr2[] = new byte[bArr.length + 1]; // STX, cmd, ETX, CRC
+
+        for (int i = 0; i < bArr.length; i++ )
+        {
+            bArr2[i] = bArr[i]; // copy
+        }
+
+        bArr2[bArr.length] = crc;
+        //bArr2[bArr.length+1]=13;
+
+        return bArr2;
+    }
+
+   /*private static byte[] calcScemtecFullCmd(byte[] cmd) {
         byte bArr[] = new byte[cmd.length + 2]; // STX, cmd, ETX
         bArr[0] = STX; // start with STX
         for (int i = 0; i < cmd.length; i++) {
@@ -201,14 +260,13 @@ public class PaulTest implements Runnable {
         }
         bArr2[bArr.length] = crc;
         return bArr2;
-    }
+    }*/
 
     private static byte calcScemtecCRC(byte[] bArr) {
         byte crc = 0x0; // initialize CRC
         for (int i = 0; i < bArr.length; i++) {
             crc ^= bArr[i]; // XOR
         }
-        System.out.println(crc);
         return crc;
     }
 
@@ -239,5 +297,20 @@ public class PaulTest implements Runnable {
                 default:
             }
         }
+    }
+
+    public static String cmdToDecString( byte[] cmd ){
+
+        StringBuffer buf = new StringBuffer();
+
+        for (int i = 0; i < cmd.length - 1; i++ )
+        {
+
+            buf.append(String.format( "%03d", cmd[i] ) + "," );
+
+        }
+        buf.append( String.format( "%03d", cmd[cmd.length - 1] ) );
+
+        return buf.toString();
     }
 }
