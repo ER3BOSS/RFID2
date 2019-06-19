@@ -32,11 +32,11 @@ public class PaulTest implements Runnable {
     private InputStream inputStream;
     private Boolean serialPortGeoeffnet = false;
 
-    private int baudrate = 9600;
+    private int baudrate = 115200;
     private int dataBits = SerialPort.DATABITS_8;
     private int stopBits = SerialPort.STOPBITS_1;
     private int parity = SerialPort.PARITY_NONE;
-    private String portName = "COM4";
+    private String portName = "COM6";
 
     static private byte STX = 0x02;
     static private byte ETX = 0x03;
@@ -47,8 +47,6 @@ public class PaulTest implements Runnable {
     PaulTest(boolean config) {
         this.config = config;
         oeffneSerialPort(portName);
-        sendeSerialPort("F0001");
-
     }
 
     @Override
@@ -70,12 +68,12 @@ public class PaulTest implements Runnable {
         //erstelle Index
 
         sendeSerialPort("6C20s");
-        sleep(2000);
+        Thread.sleep(500);
         //lese gescannte Tags aus
         sendeSerialPort("1001");
 
-        sleep(2000);
-        sleep(2000);
+        Thread.sleep(500);
+        Thread.sleep(2000);
 
         uids = outputStream.toString();
         uids = uids.substring(8);
@@ -88,22 +86,17 @@ public class PaulTest implements Runnable {
         return uids;
     }
 
-    private void serialPortDatenVerfuegbar() {
-        System.out.println("hier");
-        if (config) {
-            System.out.println("jup");
-            try {
-                byte[] data = new byte[150];
-                int num;
-                while (inputStream.available() > 0) {
-                    System.out.println("jipi");
-                    num = inputStream.read(data, 0, data.length);
-                    result = new String(data, 0, num);
-                    System.out.println("Empfange: " + new String(data, 0, num));
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(PaulTest.class.getName()).log(Level.SEVERE, null, ex);
+    public void serialPortDatenVerfuegbar() {
+        try {
+            System.out.println("EMPFANGE");
+            byte[] data = new byte[150];
+            int num;
+            while(inputStream.available() > 0) {
+                num = inputStream.read(data, 0, data.length);
+                System.out.println("Empfange: "+ new String(data, 0, num));
             }
+        } catch (IOException e) {
+            System.out.println("Fehler beim Lesen empfangener Daten");
         }
     }
 
