@@ -11,4 +11,8 @@ public class MoneyPiece {
     public double getMoneyValue() {
         return moneyValue;
     }
+
+    public String getMoneyId() {
+        return moneyId;
+    }
 }

@@ -6,16 +6,15 @@
 
 import static java.lang.Thread.sleep;
 
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import gnu.io.*;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Enumeration;
 import java.util.TooManyListenersException;
 
@@ -25,6 +24,7 @@ import java.util.TooManyListenersException;
  */
 public class CommunicationHandler implements Runnable {
     private boolean config;
+    public boolean findit = true;
 
     private CommPortIdentifier serialPortId;
     private Enumeration enumComm;
@@ -32,6 +32,7 @@ public class CommunicationHandler implements Runnable {
     private OutputStream outputStream;
     private InputStream inputStream;
     private Boolean serialPortGeoeffnet = false;
+
 
     private int baudrate = 115200;
     private int dataBits = SerialPort.DATABITS_8;
@@ -50,7 +51,7 @@ public class CommunicationHandler implements Runnable {
     CommunicationHandler(boolean config) {
         this.config = config;
         oeffneSerialPort(portName);
-        String s1 = "9941C34C000104E0";
+        String s1 = "9841C34C000104E0";
         String s2 = "4341C34C000104E0";
         String s3 = "4441C34C000104E0";
         String s4 = "9941C34C000104E0";
@@ -64,13 +65,43 @@ public class CommunicationHandler implements Runnable {
 
     }
 
-
+    public void parseStringArray(ArrayList<String> arrayList) throws IOException {
+        ArrayList<MoneyPiece> finalPieces = new ArrayList<>();
+        finalPieces.clear();
+        boolean mpFound = false;
+        Double value = .0;
+        for (String s : arrayList) {
+            for (MoneyPiece mp : mpArray) {
+                String moneyID = mp.getMoneyId();
+                if (moneyID.equals(s)) {
+                    finalPieces.add(mp);
+                    mpFound = true;
+                }
+            }
+            while (!mpFound) {
+                //findit = false;
+                System.out.println("Ein neuer Schein wurde gefunden mit der ID: " + s);
+                BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+                try {
+                    System.out.println("Wie ist der Wert des Scheins?");
+                    value = Double.parseDouble(br.readLine());
+                    mpFound = true;
+                } catch (NumberFormatException e) {
+                    continue;
+                }
+            }
+            mpArray.add(new MoneyPiece(value, s));
+            //findit = true;
+        }
+        purse.setPiecesInPurse(finalPieces);
+        purse.calculateNewValue();
+    }
 
     @Override
     public void run() {
         while (config) {
             try {
-                scan();
+                    scan();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -99,7 +130,7 @@ public class CommunicationHandler implements Runnable {
         } catch (InterruptedException ex) {
             Logger.getLogger(CommunicationHandler.class.getName()).log(Level.SEVERE, null, ex);
         }
-        System.out.println("uids" + uids);
+        //System.out.println("uids" + uids);
         return uids;
     }
 
@@ -109,11 +140,44 @@ public class CommunicationHandler implements Runnable {
             int num;
             while (inputStream.available() > 0) {
                 num = inputStream.read(data, 0, data.length);
-                System.out.println("Empfange: " + new String(data, 0, num));
+                //System.out.println("Empfange: " + new String(data, 0, num));
+                String response = new String(data, 0, num);
+                //System.out.println("Antwort:" + response);
+                if (response.length() > 16) {
+                    //System.out.println("####################################");
+                    parseStringArray(butcherResponse(response));
+                }
+                //System.out.println("Empfange: "+ response);
             }
         } catch (IOException e) {
             System.out.println("Fehler beim Lesen empfangener Daten");
         }
+    }
+
+    private void printStringList(ArrayList<String> strings) {
+        for (String s :
+                strings) {
+            System.out.println(s);
+        }
+    }
+
+    private ArrayList<String> butcherResponse(String response) {
+        //System.out.println(response);
+        ArrayList<String> liste = new ArrayList<>();
+        if (response.contains("6C21")) {
+            response = response.substring(6);
+        }
+        int count = Integer.parseInt(response.substring(0, 4));
+        response = response.substring(4); //remove the count
+        //System.out.println("COUNT:: " + count);
+        for (int i = 0; i < count; i++) {
+
+            String id = response.substring(0, 16);
+            response = response.substring(16);
+            liste.add(id);
+
+        }
+        return liste;
     }
 
 
@@ -185,28 +249,15 @@ public class CommunicationHandler implements Runnable {
         }
     }
 
-    /*private void sendeSerialPort(String nachricht) {
-        byte[] fullCmd = calcScemtecFullCmd(nachricht.getBytes());
-        System.out.println("Sende: " + nachricht);
-        if (serialPortGeoeffnet != true)
-            return;
-        try {
-            //outputStream.write(nachricht.getBytes());
-            outputStream.write(fullCmd);
-        } catch (IOException e) {
-            System.out.println("Fehler beim Senden");
-        }
-    }*/
-
     void sendeSerialPort(String nachricht) {
 
 
-        System.out.println("Sende: " + nachricht);
+        //System.out.println("Sende: " + nachricht);
 
         //nachricht= nachricht +"\r";
-        System.out.println("String nachricht: " + nachricht);
+        //System.out.println("String nachricht: " + nachricht);
         byte[] cmd1 = nachricht.getBytes(StandardCharsets.US_ASCII);
-        System.out.println("Bytes nachricht" + nachricht.getBytes());
+        //System.out.println("Bytes nachricht" + nachricht.getBytes());
         byte[] cmd = calcScemtecFullCmd(cmd1);
 
         if (serialPortGeoeffnet != true)
@@ -215,7 +266,7 @@ public class CommunicationHandler implements Runnable {
 
             outputStream.write(cmd);
             outputStream.flush();
-            System.out.println("Sende: " + cmdToDecString(cmd));
+            //System.out.println("Sende: " + cmdToDecString(cmd));
         } catch (IOException e) {
             System.out.println("Fehler beim Senden");
         }
@@ -286,7 +337,7 @@ public class CommunicationHandler implements Runnable {
 
     class serialPortEventListener implements SerialPortEventListener {
         public void serialEvent(SerialPortEvent event) {
-            System.out.println("serialPortEventlistener");
+            //System.out.println("serialPortEventlistener");
             switch (event.getEventType()) {
                 case SerialPortEvent.DATA_AVAILABLE:
                     serialPortDatenVerfuegbar();
