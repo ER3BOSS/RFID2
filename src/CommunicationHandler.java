@@ -1,198 +1,61 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+import gnu.io.CommPortIdentifier;
+import gnu.io.PortInUseException;
+import gnu.io.SerialPort;
+import gnu.io.UnsupportedCommOperationException;
 
-import static java.lang.Thread.sleep;
-
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import gnu.io.*;
-
 import java.util.Enumeration;
 import java.util.TooManyListenersException;
 
+import static java.lang.Thread.sleep;
 
-/**
- * @author Paul
- */
 public class CommunicationHandler implements Runnable {
-    private boolean config;
-    public boolean findit = true;
-
+    Purse purse = new Purse();
+    ArrayList<MoneyPiece> mpArray = new ArrayList<>();
+    InputStream inputStream;
     private CommPortIdentifier serialPortId;
-    private Enumeration enumComm;
     private SerialPort serialPort;
     private OutputStream outputStream;
-    private InputStream inputStream;
-    private Boolean serialPortGeoeffnet = false;
+    private Boolean serialPortOpen = false;
 
+    CommunicationHandler() {
+        //should return the correct portName automatically
+        String portName = ConnectionHandler.getPortName();
 
-    private int baudrate = 115200;
-    private int dataBits = SerialPort.DATABITS_8;
-    private int stopBits = SerialPort.STOPBITS_1;
-    private int parity = SerialPort.PARITY_NONE;
-    private String portName = TestClass.test();
-
-    Purse purse = new Purse("Lukas", new ArrayList<MoneyPiece>());
-    ArrayList<MoneyPiece> mpArray = new ArrayList<>();
-    static private byte STX = 0x02;
-    static private byte ETX = 0x03;
-
-    private String result;
-
-    //@param config: true for run forever, false for stop
-    CommunicationHandler(boolean config) {
-        this.config = config;
-        oeffneSerialPort(portName);
-        String s1 = "9841C34C000104E0";
-        String s2 = "4341C34C000104E0";
-        String s3 = "4441C34C000104E0";
-        String s4 = "9941C34C000104E0";
-        String s5 = "DC40C34C000104E0";
-        mpArray.add(new MoneyPiece(500, s1));
-        mpArray.add(new MoneyPiece(20, s2));
-        mpArray.add(new MoneyPiece(2, s3));
-        mpArray.add(new MoneyPiece(5, s4));
-        mpArray.add(new MoneyPiece(1, s5));
-
-
-    }
-
-    public void parseStringArray(ArrayList<String> arrayList) throws IOException {
-        ArrayList<MoneyPiece> finalPieces = new ArrayList<>();
-        finalPieces.clear();
-        boolean mpFound = false;
-        Double value = .0;
-        for (String s : arrayList) {
-            for (MoneyPiece mp : mpArray) {
-                String moneyID = mp.getMoneyId();
-                if (moneyID.equals(s)) {
-                    finalPieces.add(mp);
-                    mpFound = true;
-                }
-            }
-            while (!mpFound) {
-                //findit = false;
-                System.out.println("Ein neuer Schein wurde gefunden mit der ID: " + s);
-                BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-                try {
-                    System.out.println("Wie ist der Wert des Scheins?");
-                    value = Double.parseDouble(br.readLine());
-                    mpFound = true;
-                } catch (NumberFormatException e) {
-                    continue;
-                }
-            }
-            mpArray.add(new MoneyPiece(value, s));
-            //findit = true;
+        //error check
+        if (portName == null){
+            System.out.println("couldn't receive port name");
+            return;
         }
-        purse.setPiecesInPurse(finalPieces);
-        purse.calculateNewValue();
+
+        openSerialPort(portName);
+        
+        //create some initial money pieces here:
+        mpArray.add(new MoneyPiece(500, "9841C34C000104E0"));
+        mpArray.add(new MoneyPiece(20, "4341C34C000104E0"));
+        mpArray.add(new MoneyPiece(2, "4441C34C000104E0"));
+        mpArray.add(new MoneyPiece(5, "9941C34C000104E0"));
+        mpArray.add(new MoneyPiece(1, "DC40C34C000104E0"));
     }
 
-    @Override
-    public void run() {
-        while (config) {
-            try {
-                    scan();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
+    //establish a valid connection to the serial port and set all initial parameters
+    private void openSerialPort(String portName) {
 
-
-    public String scan() throws InterruptedException {
-        String uids = null;
-        //warten ist nÃ¶tig, damit der Scemtek arbeiten kann
-        //sleep(1000);
-        //erstelle Index
-
-        sendeSerialPort("6C20s");
-        sleep(500);
-        //lese gescannte Tags aus
-        sendeSerialPort("6C21");
-
-        sleep(500);
-        sleep(2000);
-
-        uids = outputStream.toString();
-        uids = uids.substring(8);
-        try {
-            sleep(500);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(CommunicationHandler.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        //System.out.println("uids" + uids);
-        return uids;
-    }
-
-    public void serialPortDatenVerfuegbar() {
-        try {
-            byte[] data = new byte[150];
-            int num;
-            while (inputStream.available() > 0) {
-                num = inputStream.read(data, 0, data.length);
-                //System.out.println("Empfange: " + new String(data, 0, num));
-                String response = new String(data, 0, num);
-                //System.out.println("Antwort:" + response);
-                if (response.length() > 16) {
-                    //System.out.println("####################################");
-                    parseStringArray(butcherResponse(response));
-                }
-                //System.out.println("Empfange: "+ response);
-            }
-        } catch (IOException e) {
-            System.out.println("Fehler beim Lesen empfangener Daten");
-        }
-    }
-
-    private void printStringList(ArrayList<String> strings) {
-        for (String s :
-                strings) {
-            System.out.println(s);
-        }
-    }
-
-    private ArrayList<String> butcherResponse(String response) {
-        //System.out.println(response);
-        ArrayList<String> liste = new ArrayList<>();
-        if (response.contains("6C21")) {
-            response = response.substring(6);
-        }
-        int count = Integer.parseInt(response.substring(0, 4));
-        response = response.substring(4); //remove the count
-        //System.out.println("COUNT:: " + count);
-        for (int i = 0; i < count; i++) {
-
-            String id = response.substring(0, 16);
-            response = response.substring(16);
-            liste.add(id);
-
-        }
-        return liste;
-    }
-
-
-    public void setConfig(boolean config) {
-        this.config = config;
-    }
-
-    private boolean oeffneSerialPort(String portName) {
         Boolean foundPort = false;
-        if (serialPortGeoeffnet != false) {
-            System.out.println("Serialport bereits geÃ¶ffnet");
-            return false;
+
+        if (serialPortOpen) {
+            System.out.println("serial port already open");
+            return;
         }
-        System.out.println("Ã–ffne Serialport");
-        enumComm = CommPortIdentifier.getPortIdentifiers();
+
+        System.out.println("open serial port");
+
+        //Try to find the Port
+        Enumeration enumComm = CommPortIdentifier.getPortIdentifiers();
         while (enumComm.hasMoreElements()) {
             serialPortId = (CommPortIdentifier) enumComm.nextElement();
             if (portName.contentEquals(serialPortId.getName())) {
@@ -200,79 +63,98 @@ public class CommunicationHandler implements Runnable {
                 break;
             }
         }
-        if (foundPort != true) {
-            System.out.println("Serialport nicht gefunden: " + portName);
-            return false;
+        if (!foundPort) {
+            System.out.println("serial port not found: " + portName);
+            return;
         }
+
+        //check if Port is free
         try {
-            serialPort = (SerialPort) serialPortId.open("Ã–ffnen und Senden", 500);
+            serialPort = (SerialPort) serialPortId.open("open and send", 500);
             System.out.println(serialPort.toString());
         } catch (PortInUseException e) {
-            System.out.println("Port belegt");
+            System.out.println("port already taken");
         }
+
+        //check OutputStream
         try {
             outputStream = serialPort.getOutputStream();
         } catch (IOException e) {
-            System.out.println("Keinen Zugriff auf OutputStream");
+            System.out.println("OutputStream cant be accessed");
         }
 
+        //check InputStream
         try {
             inputStream = serialPort.getInputStream();
         } catch (IOException e) {
-            System.out.println("Keinen Zugriff auf InputStream");
+            System.out.println("InputStream cant be accessed");
         }
 
+        //Try to attach the Event listener for incoming messages
         try {
-            serialPort.addEventListener(new serialPortEventListener());
+            serialPort.addEventListener(new CustomSerialPortEventListener(this));
         } catch (TooManyListenersException e) {
-            System.out.println("TooManyListenersException fÃ¼r Serialport");
+            System.out.println("TooManyListenersException -> serial port");
         }
+
+        //activate listener
         serialPort.notifyOnDataAvailable(true);
 
-        try {
-            serialPort.setSerialPortParams(baudrate, dataBits, stopBits, parity);
+        try { // try to set serial port parameters
+            int baudRate = 115200; //Todo: This may change depending on your device, a better implementation would retry with a few different rates
+            int dataBits = SerialPort.DATABITS_8;
+            int stopBits = SerialPort.STOPBITS_1;
+            int parity = SerialPort.PARITY_NONE;
+            serialPort.setSerialPortParams(baudRate, dataBits, stopBits, parity);
         } catch (UnsupportedCommOperationException e) {
-            System.out.println("Konnte Schnittstellen-Paramter nicht setzen");
+            System.out.println("couldn't set serial port parameters");
         }
 
-        serialPortGeoeffnet = true;
-        return true;
+        serialPortOpen = true; //done
     }
 
-    private void schliesseSerialPort() {
-        if (serialPortGeoeffnet == true) {
-            System.out.println("SchlieÃŸe Serialport");
-            serialPort.close();
-            serialPortGeoeffnet = false;
-        } else {
-            System.out.println("Serialport bereits geschlossen");
+    @Override
+    public void run() {
+        while (true) { //do as long as possible
+            try {
+                requestData();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    void sendeSerialPort(String nachricht) {
 
+    private void requestData() throws InterruptedException {
+        //Sleeps are important to allow for response time
 
-        //System.out.println("Sende: " + nachricht);
+        //create index
+        sendCommandToSerial("6C20s");
+        sleep(500);
+        //request scanned tags
+        sendCommandToSerial("6C21");
 
-        //nachricht= nachricht +"\r";
-        //System.out.println("String nachricht: " + nachricht);
-        byte[] cmd1 = nachricht.getBytes(StandardCharsets.US_ASCII);
-        //System.out.println("Bytes nachricht" + nachricht.getBytes());
-        byte[] cmd = calcScemtecFullCmd(cmd1);
+        sleep(3000);
+    }
 
-        if (serialPortGeoeffnet != true)
+    private void sendCommandToSerial(String command) {
+        byte[] cmd = command.getBytes(StandardCharsets.US_ASCII);
+
+        //correct the format
+        cmd = calcCmd(cmd);
+
+        if (!serialPortOpen)
             return;
         try {
-
-            outputStream.write(cmd);
-            outputStream.flush();
-            //System.out.println("Sende: " + cmdToDecString(cmd));
+            outputStream.write(cmd); //send it away!
+            outputStream.flush(); //clear the output stream
         } catch (IOException e) {
-            System.out.println("Fehler beim Senden");
+            System.out.println("an error occurred while trying to send a command");
         }
     }
 
-    public static byte[] calcScemtecFullCmd(byte[] cmd) {
+    //creates the correct command
+    private static byte[] calcCmd(byte[] cmd) {
 
         byte bArr[] = new byte[cmd.length + 2]; // STX, cmd, ETX
 
@@ -281,91 +163,29 @@ public class CommunicationHandler implements Runnable {
 
         bArr[0] = STX; // start with STX
 
-        for (int i = 0; i < cmd.length; i++) {
-            bArr[i + 1] = cmd[i]; // fill after STX
-        }
+        // fill after STX
+        System.arraycopy(cmd, 0, bArr, 1, cmd.length);
 
         bArr[cmd.length + 1] = ETX; // end with ETX
-        byte crc = calcScemtecCRC(bArr); // get CRC
+        byte crc = calcCRC(bArr); // get CRC
 
         // new array with CRC
         byte bArr2[] = new byte[bArr.length + 1]; // STX, cmd, ETX, CRC
 
-        for (int i = 0; i < bArr.length; i++) {
-            bArr2[i] = bArr[i]; // copy
-        }
+        //copy
+        System.arraycopy(bArr, 0, bArr2, 0, bArr.length);
 
         bArr2[bArr.length] = crc;
-        //bArr2[bArr.length+1]=13;
 
         return bArr2;
     }
 
-   /*private static byte[] calcScemtecFullCmd(byte[] cmd) {
-        byte bArr[] = new byte[cmd.length + 2]; // STX, cmd, ETX
-        bArr[0] = STX; // start with STX
-        for (int i = 0; i < cmd.length; i++) {
-            bArr[i + 1] = cmd[i]; // fill after STX
-        }
-        bArr[cmd.length + 1] = ETX; // end with ETX
-        byte crc = calcScemtecCRC(bArr); // get CRC
-        // new array with CRC
-        byte bArr2[] = new byte[bArr.length + 1]; // STX, cmd, ETX, CRC
-        for (int i = 0; i < bArr.length; i++) {
-            bArr2[i] = bArr[i]; // copy
-        }
-        bArr2[bArr.length] = crc;
-        return bArr2;
-    }*/
-
-    private static byte calcScemtecCRC(byte[] bArr) {
+    //calculates the checksum
+    private static byte calcCRC(byte[] bArr) {
         byte crc = 0x0; // initialize CRC
-        for (int i = 0; i < bArr.length; i++) {
-            crc ^= bArr[i]; // XOR
+        for (byte aBArr : bArr) {
+            crc ^= aBArr; // XOR
         }
         return crc;
-    }
-
-    public static String cmdToHexString(byte[] cmd) {
-        StringBuffer buf = new StringBuffer();
-        for (int i = 0; i < cmd.length - 1; i++) {
-            buf.append(String.format("%02X", cmd[i]) + ",");
-        }
-        buf.append(String.format("%02X", cmd[cmd.length - 1]));
-        return buf.toString();
-    }
-
-    class serialPortEventListener implements SerialPortEventListener {
-        public void serialEvent(SerialPortEvent event) {
-            //System.out.println("serialPortEventlistener");
-            switch (event.getEventType()) {
-                case SerialPortEvent.DATA_AVAILABLE:
-                    serialPortDatenVerfuegbar();
-                    break;
-                case SerialPortEvent.BI:
-                case SerialPortEvent.CD:
-                case SerialPortEvent.CTS:
-                case SerialPortEvent.DSR:
-                case SerialPortEvent.FE:
-                case SerialPortEvent.OUTPUT_BUFFER_EMPTY:
-                case SerialPortEvent.PE:
-                case SerialPortEvent.RI:
-                default:
-            }
-        }
-    }
-
-    public static String cmdToDecString(byte[] cmd) {
-
-        StringBuffer buf = new StringBuffer();
-
-        for (int i = 0; i < cmd.length - 1; i++) {
-
-            buf.append(String.format("%03d", cmd[i]) + ",");
-
-        }
-        buf.append(String.format("%03d", cmd[cmd.length - 1]));
-
-        return buf.toString();
     }
 }

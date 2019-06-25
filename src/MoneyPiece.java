@@ -1,18 +1,18 @@
-public class MoneyPiece {
+class MoneyPiece {
 
-    double moneyValue;
-    String moneyId;
+    private double moneyValue;
+    private String moneyId;
 
-    public MoneyPiece(double value, String id){
+    MoneyPiece(double value, String id) {
         moneyId = id;
         moneyValue = value;
     }
 
-    public double getMoneyValue() {
+    double getMoneyValue() {
         return moneyValue;
     }
 
-    public String getMoneyId() {
+    String getMoneyId() {
         return moneyId;
     }
 }

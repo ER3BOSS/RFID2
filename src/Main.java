@@ -1,28 +1,7 @@
-import gnu.io.*;
-import java.util.Enumeration;
-
-public class Main{
-    public static void main(String[] args){
-        test();
-        EinfachSenden einfachSenden = new EinfachSenden();
-        einfachSenden.run();
+public class Main {
+    public static void main(String[] args) {
+        //Start the main routine in a Thread
+        Runnable runnable = new CommunicationHandler();
+        new Thread(runnable).start();
     }
-
-    static void test() {
-        System.out.println("Test started");
-        //System.out.println(java.library.path);
-        CommPortIdentifier serialPortId;
-        //static CommPortIdentifier sSerialPortId;
-        Enumeration enumComm;
-        //SerialPort serialPort;
-        enumComm = CommPortIdentifier.getPortIdentifiers();
-        while (enumComm.hasMoreElements()) {
-            serialPortId = (CommPortIdentifier) enumComm.nextElement();
-            if (serialPortId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
-                System.out.println(serialPortId.getName());
-            }
-        }
-        System.out.println("Finished successfully");
-    }
-
 }
